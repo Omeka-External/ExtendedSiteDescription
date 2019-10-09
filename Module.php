@@ -25,6 +25,12 @@ class Module extends AbstractModule
             'form.add_elements',
             [$this, 'addToSiteSettingsForm']
         );
+
+        $sharedEventManager->attach(
+            'Omeka\Api\Representation\SiteRepresentation',
+            'rep.resource.json',
+            [$this, 'addSettingsToApi']
+        );
     }
 
     public function getConfigForm(PhpRenderer $renderer)
@@ -107,6 +113,32 @@ class Module extends AbstractModule
                 'data-placeholder' => 'Select categories', // @translate
             ],
         ]);
+    }
+
+    public function addSettingsToApi(Event $event)
+    {
+        $site = $event->getTarget();
+        $siteId = $site->id();
+
+        $services = $this->getServiceLocator();
+        $api = $services->get('Omeka\ApiManager');
+        $siteSettings = $services->build('Omeka\Settings\Site');
+        $siteSettings->setTargetId($siteId);
+
+        $jsonLd = $event->getParam('jsonLd');
+        $jsonLd['extended_site_description_linear'] = (bool) $siteSettings->get('extended_site_description_linear');
+        $jsonLd['extended_site_description_categories'] = $siteSettings->get('extended_site_description_categories', []);
+
+        $image = null;
+        $imageId = $siteSettings->get('extended_site_description_image');
+        if ($imageId) {
+            try {
+                $response = $api->read('assets', $imageId);
+                $image = $response->getContent();
+            } catch (\Omeka\Api\Exception\NotFoundException $e) {}
+        }
+        $jsonLd['extended_site_description_image'] = $image;
+        $event->setParam('jsonLd', $jsonLd);
     }
 }
 
