@@ -20,9 +20,10 @@ $imageId = $this->siteSetting('extended_site_description_image');
 if ($imageId) {
     try {
         $response = $this->api()->read('assets', $imageId);
-        $imageUrl = $reponse->getContent()->assetUrl();
+        $imageUrl = $response->getContent()->assetUrl();
     } catch (\Omeka\Api\Exception\NotFoundException $e) {}
 }
 ```
 
+The values are also exposed, using the same keys, in the site API output.
 
